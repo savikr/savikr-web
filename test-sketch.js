@@ -1,120 +1,68 @@
-// Drawn from https://p5js.org/examples/simulate-penrose-tiles.html
-// This is a port by David Blitz of the "Penrose Tile" example from processing.org/examples
-
-var ds;
-
+// defining global variables
+  var x1 = -100;
+  var x2 = -100;
+  var x3 = -100;
+  var x4 = -100;
+  var x5 = -100;
 function setup() {
-  createCanvas(710, 400);
-  ds = new PenroseLSystem();
-  //please, play around with the following line
-  ds.simulate(5);
+  num=2
+  createCanvas(400, 400);
+  rectMode(CENTER);
 }
 
 function draw() {
-  background(0);
-  ds.render();
-}
+  background(1, 186,240);
 
-function PenroseLSystem() {
-    this.steps = 0;
-
-   //these are axiom and rules for the penrose rhombus l-system
-   //a reference would be cool, but I couldn't find a good one
-    this.axiom = "[X]++[X]++[X]++[X]++[X]";
-    this.ruleW = "YF++ZF----XF[-YF----WF]++";
-    this.ruleX = "+YF--ZF[---WF--XF]+";
-    this.ruleY = "-WF++XF[+++YF++ZF]-";
-    this.ruleZ = "--YF++++WF[+ZF++++XF]--XF";
-
-    //please play around with the following two lines
-    this.startLength = 460.0;
-    this.theta = TWO_PI / 10.0; //36 degrees, try TWO_PI / 6.0, ...
-    this.reset();
-}
-
-PenroseLSystem.prototype.simulate = function (gen) {
-  while (this.getAge() < gen) {
-    this.iterate(this.production);
+  var size = 50;
+  
+  //rectangle 1
+  if (x1<375){
+    x1 = -100 + 0.5*frameCount;
+  } else {
+    x1 = 375;
   }
+  fill(220,0,0);
+  noStroke();
+  rect(x1,50,size,size);
+  
+  //rectangle 2
+  if (x2<375){
+    x2 = -100 + 0.75*frameCount;
+  } else {
+    x2 = 375;
+  }
+  fill(219,119,20);
+  noStroke();
+  rect(x2,125,size,size);
+  
+  //rectangle 3
+  if (x3<375){
+    x3 = -100 + frameCount;
+  } else {
+    x3 = 375;
+  }
+  fill(251,251,60);
+  noStroke();
+  rect(x3,200,size,size);
+  
+  //rectangle 4
+  if (x4<375){
+    x4 = -100 + 1.25*frameCount;
+  } else {
+    x4 = 375;
+  }
+  fill(44,184,44);
+  noStroke();
+  rect(x4,275,size,size);
+  
+  //rectangle 5
+  if (x5<375){
+    x5 = -100 + 1.5*frameCount;
+  } else {
+    x5 = 375;
+  }
+  fill(25,60,235);
+  noStroke();
+  rect(x5,350,size,size);
+  
 }
-
-PenroseLSystem.prototype.reset = function () {
-    this.production = this.axiom;
-    this.drawLength = this.startLength;
-    this.generations = 0;
-  }
-
-PenroseLSystem.prototype.getAge = function () {
-    return this.generations;
-  }
-
-//apply substitution rules to create new iteration of production string
-PenroseLSystem.prototype.iterate = function() {
-    var newProduction = "";
-
-    for(var i=0; i<this.production.length; ++i) {
-      var step = this.production.charAt(i);
-      //if current character is 'W', replace current character
-      //by corresponding rule
-      if (step == 'W') {
-        newProduction = newProduction + this.ruleW;
-      }
-      else if (step == 'X') {
-        newProduction = newProduction + this.ruleX;
-      }
-      else if (step == 'Y') {
-        newProduction = newProduction + this.ruleY;
-      }
-      else if (step == 'Z') {
-        newProduction = newProduction + this.ruleZ;
-      }
-      else {
-        //drop all 'F' characters, don't touch other
-        //characters (i.e. '+', '-', '[', ']'
-        if (step != 'F') {
-          newProduction = newProduction + step;
-        }
-      }
-    }
-
-    this.drawLength = this.drawLength * 0.5;
-    this.generations++;
-    this.production = newProduction;
-}
-
-//convert production string to a turtle graphic
-PenroseLSystem.prototype.render = function () {
-    translate(width/2, height/2);
-
-    this.steps += 20;
-    if(this.steps > this.production.length) {
-      this.steps = this.production.length;
-    }
-
-    for(var i=0; i<this.steps; ++i) {
-      var step = this.production.charAt(i);
-
-      //'W', 'X', 'Y', 'Z' symbols don't actually correspond to a turtle action
-      if( step == 'F') {
-        stroke(255, 60);
-        for(var j=0; j < this.repeats; j++) {
-          line(0, 0, 0, -this.drawLength);
-          noFill();
-          translate(0, -this.drawLength);
-        }
-        this.repeats = 1;
-      }
-      else if (step == '+') {
-        rotate(this.theta);
-      }
-      else if (step == '-') {
-        rotate(-this.theta);
-      }
-      else if (step == '[') {
-        push();
-      }
-      else if (step == ']') {
-        pop();
-      }
-    }
-  }
