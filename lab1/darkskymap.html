@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>International Dark Sky Places</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
+    <link
+      href="https://api.tiles.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      h2,
+      h3 {
+        margin: 10px;
+        font-size: 18px;
+      }
+      h3 {
+        font-size: 16px;
+      }
+      p {
+        margin: 10px;
+      }
+      .map-overlay {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        background: #fff;
+        margin-right: 10px;
+        font-family: Arial, sans-serif;
+        overflow: auto;
+        border-radius: 3px;
+      }
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+      }
+      #features {
+        bottom: 0;
+        left: 0;
+        height: 150px;
+        margin-bottom: 40px;
+        margin-left: 15px;
+        width: 600px;
+      }
+      #legend {
+        padding: 10px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        line-height: 18px;
+        height: 150px;
+        margin-bottom: 40px;
+        margin-right: 15px;
+        width: 200px;
+      }
+      .legend-key {
+        display: inline-block;
+        border-radius: 100%;
+        border-style: solid;
+        border-width: 2px;
+        width: 10px;
+        height: 10px;
+        margin-right: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div class="map-overlay" id="features">
+      <h2>International Dark Sky Places</h2>
+      <p>Data from <a href="https://www.darksky.org/our-work/conservation/idsp/">International Dark-Sky Association</a> (2021).</p>
+      <div id="pd"><p>Click on a point to see available location information.</p></div>
+    </div>
+    <div class="map-overlay" id="legend">
+      <h3>International Dark Sky Place Designation</h3>
+    </div>
+
+    <script>
+      // define access token
+      mapboxgl.accessToken = 'pk.eyJ1Ijoic2F2aWtyIiwiYSI6ImNsMDJxcnlrcDB2bHgzY3J5bnZnY3BiemcifQ.2ZywcZt83iI1SJWPoGERuw';
+
+      // create map
+      const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/savikr/cl05otpq0004n14p8o5xf9dmo', // replaced
+        center: [-110, 37],
+        zoom: 5
+      });
+      // Add zoom and rotation controls to the map.
+map.addControl(new mapboxgl.NavigationControl());
+
+      // wait for map to load before adjusting it
+      map.on('load', () => {
+        // make a pointer cursor
+        map.getCanvas().style.cursor = 'default';
+
+        // define layer names
+        const layers = [
+        'Community',
+        'Park',
+        'Reserve',
+        'Sanctuary',
+        'Urban Night Sky Place'
+        ];
+        const colors = [
+        '#e78ac3',
+        '#a6d854',
+        '#66c2a5',
+        '#6959e3',
+        '#fc8d62'
+        ];
+
+        // create legend
+        const legend = document.getElementById('legend');
+
+        layers.forEach((layer, i) => {
+          const color = colors[i];
+          const item = document.createElement('div');
+          const key = document.createElement('span');
+          key.className = 'legend-key';
+          key.style.backgroundColor = color;
+
+          const value = document.createElement('span');
+          value.innerHTML = `${layer}`;
+          item.appendChild(key);
+          item.appendChild(value);
+          legend.appendChild(item);
+        });
+        // change info window on hover
+        map.on('click', (event) => {
+          const points = map.queryRenderedFeatures(event.point, {
+            layers: ['darkskyplaces-8bsxdh']
+          });
+          document.getElementById('pd').innerHTML = points.length
+            ? `<h3>Location: ${points[0].properties.name}</h3><p>${points[0].properties.description}</p>`
+            : `<p>Click on a point to see available location information.</p>`;
+        });
+        });
+    </script>
+  </body>
+</html>
