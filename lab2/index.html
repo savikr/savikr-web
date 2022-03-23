@@ -1,0 +1,260 @@
+<!DOCTYPE html><html><head>
+    <meta charset="utf-8">
+
+    <!-- Leaflet styles and code. -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css">
+    <script src="leaflet.js"></script>
+
+    <!-- Turf code. -->
+    <script src="turf.min.js"></script>
+
+    <!-- jQuery code -->
+    <script src="jquery-3.3.1.min.js"></script>
+
+    <script src="./p5.min.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <meta charset="utf-8">
+  </head>
+  <body>
+    <h2>Interactive Community Garden Voronoi</h2>
+    <p>This map shows what parts of Vancouver are closest to each existing community garden. Hover over an existing garden to see its name. Click in the box to to add a new community garden!</p>
+    
+    <!-- code from my attempt to make a slider to filter existing gardens by year-->
+    <!--<div class="slidecontainer" style="margin: 15px;">
+    Year:
+  		<input type="range" min="2000" max="2022" value="2022"
+             class="slider" id="yearRange"
+             style="padding: 5px; vertical-align: bottom">
+      <span id="yearLabel"></span> --> 
+    
+
+    <!-- remove user-added gardens by refreshing the page -->
+    <button id="refresh" onclick="window.location.reload();">Remove added gardens</button> 
+    <p></p> <!-- add a space between the button and the map-->
+    
+    <div id="mapid" style="width: 1000px; height: 600px; margin: 5px"></div>
+    <p> Data sourced from <a href="https://opendata.vancouver.ca/explore/dataset/community-gardens-and-food-trees/information/">Vancouver Open Data Portal (2022).</a></p>
+    <script>
+        
+        var lastPointLayerAdded   = {}; // Keep track of what we added to the map
+        var lastVoronoiLayerAdded = {}; // so we can remove/update the map.
+        var existingPointLayer = {}; // this is the layer of points with interactive hover pop-ups that is plotted on top of the voronoi polygons and the points used to make the voronoi polygons, including user-added points
+      
+      
+        // create the Leaflet map
+        var map = L.map('mapid',
+                                   {center: [49.257, -123.13],
+                                    zoom: 12});
+
+        // add the basemap
+        var Esri_WorldGrayCanvas = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+                     	attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+                        minZoom: 10,
+                         maxZoom: 16
+                           }).addTo(map);
+
+        // Styling
+        var existingPointStyle = {
+                             radius: 5,
+                             fillColor: "#7FBF3F",
+                             color: "#000",
+                             weight: 1,
+                             opacity: 1,
+                             fillOpacity: 1
+                           };
+        var addedPointStyle = {
+                             radius: 5,
+                             fillColor: "#E34E99",
+                             color: "#000",
+                             weight: 1,
+                             opacity: 1,
+                             fillOpacity: 1,
+                           };
+          
+        var voronoiPolygonStyle =  {
+                  	    color: "#494949",
+                        weight: 2,
+                  		opacity: 1,
+                        fillOpacity:0 };
+        
+        // Each point that is used to make voronoi polygons (existing gardens and user-added) goes into this array
+        var pointArray = [];
+
+        // The drawVoronoi() function is called when the garden data is loaded and again when the user clicks within the bounding box
+
+       function drawVoronoi(pointArrayToDraw) {
+
+        // Reset the existing map layers if they've been drawn before.
+                if (map.hasLayer(lastPointLayerAdded)) {
+                    map.removeLayer(lastPointLayerAdded);
+                    map.removeLayer(lastVoronoiLayerAdded);
+                    } 
+         
+                // convert array to point feature collection and project to Mercator for voronoi calculations
+                var pointFeatureArray = [];
+
+                for (var i=0; i < pointArray.length; i++) {
+                         pointFeatureArray.push(turf.point(pointArray[i])
+                                               )
+                };
+
+                var pointFeatureCollectionWGS84 =
+                turf.featureCollection(pointFeatureArray);
+                var pointFeatureCollectionMercator =
+                turf.toMercator(pointFeatureCollectionWGS84);
+
+           // code for removing duplicate coordinates (from https://stackoverflow.com/questions/30388155/remove-duplicate-values-from-geojson-collection)
+            // generates a key from the item's coordinates.
+              function keyFor(item) {
+                return item.geometry.coordinates[0] + ':' + item.geometry.coordinates[1];
+          }
+
+              // index the entries by their coordinates such that
+              // indexed['lat:lng'] == the entry.
+              var indexed = {};
+              pointFeatureCollectionMercator.features.forEach(function(item) {
+              // a duplicate key will replace the existing entry
+            indexed[keyFor(item)] = item;
+              });
+
+              // turn the results back into an array of just values.
+              var result = Object.keys(indexed).map(function(k) {
+                  return indexed[k]});
+         
+              var pointFeatureCollectionMercatorUnique = turf.featureCollection(result);
+          
+         
+              // Calculate the voronoi diagram in Mercator using non-duplicate points, then project back into WGS84
+
+              var voronoiPolygonsMercator = 
+                  turf.voronoi(pointFeatureCollectionMercatorUnique,                                                          {bbox:cityBbox});
+
+              var voronoiPolygons = turf.toWgs84(voronoiPolygonsMercator);
+         
+              // map the voronoi polygons and the points used to calculate them
+              lastVoronoiLayerAdded = L.geoJson(voronoiPolygons, voronoiPolygonStyle);
+              lastVoronoiLayerAdded.addTo(map);
+
+              lastPointLayerAdded = L.geoJson(pointFeatureCollectionWGS84, {
+                pointToLayer:  function(feature, latlng) {
+                                               return L.circleMarker(latlng,
+                                                                     addedPointStyle)
+                                          }});
+                    lastPointLayerAdded.addTo(map);
+              addGardens(gardensGeoJSON);         
+                  }
+
+                  // END of voronoi drawing function
+
+        // city boundary as bounding box for voronoi
+        var cityBbox;
+        function addCity(geoJSON) {
+            cityBbox = turf.bbox(turf.toMercator(cityGeoJSON));
+                  }
+      
+        function addGardens(featureCollection) {
+            if (map.hasLayer(existingPointLayer)) {
+                map.removeLayer(existingPointLayer)};
+              
+          existingPointLayer = L.geoJSON(gardensGeoJSON, {pointToLayer: gardenPointToLayer, 
+                                                 onEachFeature: onEachGarden,
+                                                 // filter: filterByYear // code from year slider
+                                                         });
+          existingPointLayer.addTo(map);
+                    
+          function gardenPointToLayer(feature, latlng) {
+                 return L.circleMarker(latlng,existingPointStyle)};
+
+          function onEachGarden(feature, layer) {
+                          // does this tree even have a property named name?
+                  if (feature.properties && feature.properties.name) {
+                    layer.bindTooltip(feature.properties.name);
+                          }
+                       }
+                         existingPointLayer.addTo(map);
+                       };
+      
+          // below is code from year slider attempt
+      
+          
+      
+          //function filterByYear(feature, layer) { 
+               //if (feature.properties && feature.properties.year_created) {
+                            //var parsed = parseInt(feature.properties.year_created)
+                        //if (isNaN(parsed)) { return 2000; } // some gardens created before 2000 had year created property values of "pre-1970" or "pre-2000" that were not numbers
+      
+                            //return (parsed<=yearUntil); //
+                        //} else {
+                           // return false}};
+                 
+      
+      // Reference to slider element
+      //var yearSlider = document.getElementById("yearRange");
+      //yearLabel.innerHTML = yearUntil.toString();
+      
+      //var yearUntil = 2022; // set yearUntil to be default year
+      
+      // when user changes year on year slider, yearUntil is changed and data is filtered
+      
+      //yearSlider.oninput = function() {
+      //yearUntil = this.value;
+      //yearLabel.innerHTML = yearUntil.toString();
+      //filterByYear(yearUntil);
+      // } 
+      
+      
+      // load city boundary polygon to use for creating the voronoi bounding box
+      $.getJSON("https://raw.githubusercontent.com/savikr/savikr-web/gh-pages/lab2/data/vancouver_boundary.geojson",
+                         function(data) {
+                  cityGeoJSON = data;
+                  addCity(cityGeoJSON);
+                });
+      
+      // load existing community garden data
+        var gardensGeoJSON;
+        $.getJSON("https://raw.githubusercontent.com/savikr/savikr-web/gh-pages/lab2/data/community-gardens-and-food-trees.geojson",
+                             function(data) {
+                               // Once UBC trees GeoJSON layer is loaded
+                               // Then add it to the map
+                                gardensGeoJSON = data;
+                                pointToArray(gardensGeoJSON);
+                                addGardens(gardensGeoJSON);
+                                 });
+
+        // add existing gardens to array of points to be drawn by the Voronoi function
+        function pointToArray(featureCollection) {
+             for (var i=0; i<featureCollection.features.length;
+                             i++) {
+                         pointArray.push(featureCollection.features[i]
+                                                   .geometry
+                                                   .coordinates);
+                         }
+                        drawVoronoi(pointArray);
+                   };
+      
+                
+      // Make the mouse cursor into something that looks like you're supposed to click.
+      
+        document.getElementById("refresh").style.cursor="pointer";
+        document.getElementById("mapid").style.cursor = "pointer";
+                          
+      
+        // When someone clicks within the bounding box, get the coordinates, store the point, and draw the Voronoi.
+        // city bounding box array in WGS84[-123.22471618652344, 49.19830746998781, -123.02318572998045, 49.3163943408001]
+                  map.on('click', function(e) {
+                    	if ((e.latlng.lng<-123.02318572998045)&&
+                            (e.latlng.lng>-123.22471618652344)&&
+                            (e.latlng.lat<49.3163943408001)&&
+                            (e.latlng.lat>49.19830746998781)) {
+                        var newPoint = [e.latlng.lng,e.latlng.lat];
+            			pointArray.push(newPoint);
+                      drawVoronoi(pointArray);
+                    }}
+                  );
+    </script>
+  
+
+
+
+</body></html>
