@@ -17,7 +17,7 @@
     <meta charset="utf-8">
   </head>
   <body>
-    <h2>Interactive Community Garden Voronoi</h2>
+    <h2>Interactive Community Garden Voronoi Diagram</h2>
     <p>This map shows what parts of Vancouver are closest to each existing community garden. Hover over an existing garden to see its name. Click in the box to to add a new community garden!</p>
     
     <!-- code from my attempt to make a slider to filter existing gardens by year-->
@@ -29,7 +29,8 @@
       <span id="yearLabel"></span> --> 
     
 
-    <!-- remove user-added gardens by refreshing the page -->
+    <!-- remove user-added gardens by refreshing the page --> 
+      <!-- code from Stack Overflow -->
     <button id="refresh" onclick="window.location.reload();">Remove added gardens</button> 
     <p></p> <!-- add a space between the button and the map-->
     
@@ -104,7 +105,7 @@
                 var pointFeatureCollectionMercator =
                 turf.toMercator(pointFeatureCollectionWGS84);
 
-           // code for removing duplicate coordinates (from https://stackoverflow.com/questions/30388155/remove-duplicate-values-from-geojson-collection)
+           // code for removing duplicate coordinates from Stack Overflow
             // generates a key from the item's coordinates.
               function keyFor(item) {
                 return item.geometry.coordinates[0] + ':' + item.geometry.coordinates[1];
@@ -142,17 +143,19 @@
                                                                      addedPointStyle)
                                           }});
                     lastPointLayerAdded.addTo(map);
-              addGardens(gardensGeoJSON);         
+              addGardens(gardensGeoJSON);   // ensures that the existing garden layer is plotted above the complete layer of voronoi points 
+                                               //(existing and added) in a different colour   
                   }
 
                   // END of voronoi drawing function
 
-        // city boundary as bounding box for voronoi
+        // use city boundary as bounding box for voronoi
         var cityBbox;
         function addCity(geoJSON) {
             cityBbox = turf.bbox(turf.toMercator(cityGeoJSON));
                   }
-      
+        
+        // add a layer of existing gardens with hover pop-ups on top of the points used in the voronoi function
         function addGardens(featureCollection) {
             if (map.hasLayer(existingPointLayer)) {
                 map.removeLayer(existingPointLayer)};
@@ -161,7 +164,7 @@
                                                  onEachFeature: onEachGarden,
                                                  // filter: filterByYear // code from year slider
                                                          });
-          existingPointLayer.addTo(map);
+          existingPointLayer.addTo(map); 
                     
           function gardenPointToLayer(feature, latlng) {
                  return L.circleMarker(latlng,existingPointStyle)};
@@ -176,9 +179,7 @@
                        };
       
           // below is code from year slider attempt
-      
-          
-      
+   
           //function filterByYear(feature, layer) { 
                //if (feature.properties && feature.properties.year_created) {
                             //var parsed = parseInt(feature.properties.year_created)
