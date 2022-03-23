@@ -205,7 +205,7 @@
       
       
       // load city boundary polygon to use for creating the voronoi bounding box
-      $.getJSON("https://raw.githubusercontent.com/savikr/savikr-web/gh-pages/lab2/data/vancouver_boundary.geojson",
+      $.getJSON("./data/vancouver-boundary.geojson",
                          function(data) {
                   cityGeoJSON = data;
                   addCity(cityGeoJSON);
